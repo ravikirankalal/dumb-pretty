@@ -1,0 +1,45 @@
+From 3baab338d4491f230a6c35d22f856c2ddc873c42 Mon Sep 17 00:00:00 2001
+From: "qwen.ai[bot]" <qwenlm-intl@service.alibaba.com>
+Date: Fri, 25 Sep 2026 05:39:58 +0000
+Subject: [PATCH 3/3] fix: use plain 'node --test' discovery for cross-version
+ compatibility (fixes Node 22 path-resolution error); document Node >=18
+
+---
+ README.md    | 4 ++--
+ package.json | 5 ++++-
+ 2 files changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/README.md b/README.md
+index aba4e35..7223ec1 100644
+--- a/README.md
++++ b/README.md
+@@ -94,8 +94,8 @@ Then upload the zip to the [Chrome Web Store Developer Dashboard](https://chrome
+ Tests run with Node's built-in test runner (no dependencies):
+ 
+ ```bash
+-npm test              # run all tests
+-node --test tests/    # equivalent
++npm test                    # run all tests (plain `node --test` discovery)
++node --test tests/analyzer.test.js   # run a single test file
+ ```
+ 
+ ## License
+diff --git a/package.json b/package.json
+index ae0f2c3..a855e28 100644
+--- a/package.json
++++ b/package.json
+@@ -3,7 +3,10 @@
+   "version": "0.1.0",
+   "private": true,
+   "description": "Chrome extension: render JSON responses as visual UI (tables, lists, badges).",
++  "engines": {
++    "node": ">=18.0.0"
++  },
+   "scripts": {
+-    "test": "node --test tests/"
++    "test": "node --test"
+   }
+ }
+-- 
+2.39.5
+
