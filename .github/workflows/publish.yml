@@ -1,0 +1,37 @@
+name: Publish to Chrome Web Store
+# Manual trigger, or automatic on v* tags. Requires repo secrets:
+#   CWS_CLIENT_ID, CWS_CLIENT_SECRET, CWS_REFRESH_TOKEN (see README "Publishing").
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    if: ${{ vars.ENABLE_CWS_PUBLISH == 'true' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Enforce version consistency
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          MANIFEST=$(node -p "require('./dist/manifest.json').version")
+          TAG="${GITHUB_REF_NAME#v}"
+          [ "$PKG" = "$MANIFEST" ] && [ "$TAG" = "$PKG" ] || { echo "Version mismatch: pkg=$PKG manifest=$MANIFEST tag=$TAG"; exit 1; }
+
+      - name: Package dist/ into zip
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq zip >/dev/null
+          (cd dist && zip -rq ../json-visualizer-store.zip .)
+          unzip -l json-visualizer-store.zip
+
+      - name: Upload to Chrome Web Store
+        uses: trmcnney/chrome-upload@v1.1.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          source: json-visualizer-store.zip
+          client-id: ${{ secrets.CWS_CLIENT_ID }}
+          client-secret: ${{ secrets.CWS_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.CWS_REFRESH_TOKEN }}

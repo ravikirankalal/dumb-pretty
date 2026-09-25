@@ -82,6 +82,50 @@ zip -r ../json-visualizer.zip . -x "*.DS_Store"
 
 Then upload the zip to the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole) (a $5 one-time developer registration is required by Google), or share the zip and have users unzip it and **Load unpacked** as above.
 
+## Publishing to the Chrome Web Store
+
+### One-time setup (manual, ~20 minutes)
+
+1. **Register as a Chrome Web Store developer**: sign in at the
+   [Developer Dashboard](https://chrome.google.com/webstore/devconsole) with your Google account
+   and pay the **one-time $5 USD registration fee**.
+2. **Create the listing**: click "New item", upload the packaged zip (`json-visualizer.zip` from
+   the command above — repackage after every release), then fill in the store text from
+   [`store/LISTING.md`](store/LISTING.md) (name, descriptions, category). Upload a 128×128 icon
+   (reuse `dist/icons/icon128.png`) and at least one 1280×800 screenshot — open e.g.
+   `https://jsonplaceholder.typicode.com/users` with the extension installed and capture each view.
+3. **Privacy disclosures**: answer the questionnaire using
+   [`store/PRIVACY.md`](store/PRIVACY.md) (correct answer: no data is collected; single purpose).
+   The dashboard requires a **privacy policy URL** — a ready-made page lives at
+   [`site/privacy.html`](site/privacy.html); enable GitHub Pages for this repo and use
+   `https://ravikirankalal.github.io/dumb-pretty/privacy.html`.
+4. **Visibility**: choose Unlisted or Public, then click "Publish item". First submissions of a
+   broad-host-permission extension typically undergo a human review taking a few hours to several
+   days. Note the assigned extension ID shown in the dashboard.
+
+### Automated uploads via GitHub Actions (optional, for future releases)
+
+The workflow [`.github/workflows/publish.yml`](.github/workflows/publish.yml) packages `dist/` and
+uploads it to the store automatically when you push a `v*` tag (or run it manually from the
+Actions tab). It stays disabled until you configure it:
+
+1. In [Google Cloud Console](https://console.cloud.google.com), create a project, enable the
+   **Chrome Web Store API**, and create **OAuth client ID** credentials (type: *Desktop app*).
+   Add `https://www.googleapis.com/auth/chromewebstore` as an authorized redirect URI.
+2. Exchange that client ID/secret for a **refresh token** once, locally:
+   ```bash
+   npx chrome-web-store-login <CLIENT_ID> <CLIENT_SECRET>   # opens browser consent; prints refresh token
+   ```
+3. In your GitHub repo → Settings → Secrets and variables → Actions, add secrets
+   `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`, `CWS_REFRESH_TOKEN`, and repository variable
+   `ENABLE_CWS_PUBLISH = true`.
+4. From then on, tagging a release also pushes the new package to the store as a draft update;
+   flip it to published in the dashboard (the API cannot skip review).
+
+Note: `<all_urls>` host permission draws extra scrutiny during review. If reviewers ask, justify
+it in the submission notes ("reads only JSON documents the user opens; renders locally; makes no
+network requests") or narrow permissions to specific origins you actually need.
+
 ## Development
 
 - Edit files under `dist/content/`, `dist/popup/`, or `dist/background/`.
