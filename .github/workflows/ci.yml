@@ -90,10 +90,17 @@ jobs:
           cd ..
           ls -la "json-visualizer-${GITHUB_REF_NAME}.zip"
 
+      # Note: softprops/action-gh-release@v2 still declares `using: node20` in its
+      # action.yml (even at v2.6.x), which triggers the GitHub Actions Node 20
+      # deprecation warning. gh CLI is preinstalled on ubuntu runners, so we create
+      # the release natively instead — no third-party action, no deprecation notice.
       - name: Create GitHub Release with zip asset
-        uses: softprops/action-gh-release@v2
-        with:
-          files: json-visualizer-${{ github.ref_name }}.zip
-          generate_release_notes: true
-          draft: false
-          prerelease: false
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "json-visualizer-${GITHUB_REF_NAME}.zip" \
+            --generate-notes \
+            --title "$GITHUB_REF_NAME" \
+            || { echo "Release may already exist; uploading asset instead"; \
+                 gh release upload "$GITHUB_REF_NAME" "json-visualizer-${GITHUB_REF_NAME}.zip" --clobber; }
