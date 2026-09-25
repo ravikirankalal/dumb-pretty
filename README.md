@@ -94,8 +94,8 @@ Then upload the zip to the [Chrome Web Store Developer Dashboard](https://chrome
 Tests run with Node's built-in test runner (no dependencies):
 
 ```bash
-npm test              # run all tests
-node --test tests/    # equivalent
+npm test                    # run all tests (plain `node --test` discovery)
+node --test tests/analyzer.test.js   # run a single test file
 ```
 
 ## License
