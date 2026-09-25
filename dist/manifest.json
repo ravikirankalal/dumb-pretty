@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "JSON Visualizer",
+  "version": "0.1.0",
+  "description": "Renders JSON responses as visual UI elements: tables, lists, badges — not just pretty text.",
+  "minimum_chrome_version": "102",
+  "permissions": ["storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background/service_worker.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "content/util.js",
+        "content/parser.js",
+        "content/analyzer.js",
+        "content/renderer.js",
+        "content/toolbar.js",
+        "content/detector.js"
+      ],
+      "css": ["content/styles.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

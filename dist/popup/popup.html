@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>JSON Visualizer</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <h1>JSON Visualizer</h1>
+
+  <label class="row">
+    <span>Enabled</span>
+    <input type="checkbox" id="enabled" />
+  </label>
+
+  <div class="row">
+    <span>Default view</span>
+    <select id="defaultView">
+      <option value="visual">Visual</option>
+      <option value="pretty">Pretty</option>
+      <option value="raw">Raw</option>
+    </select>
+  </div>
+
+  <label class="row">
+    <span>Max payload (MB)</span>
+    <input type="number" id="maxMb" min="1" max="50" step="1" style="width:70px" />
+  </label>
+
+  <div class="section">Disabled sites</div>
+  <ul id="disabledList" class="sites"></ul>
+  <p id="emptyNote" class="muted hidden">No disabled sites yet. Use “Disable site” in the toolbar on a JSON page.</p>
+
+  <script src="popup.js"></script>
+</body>
+</html>
