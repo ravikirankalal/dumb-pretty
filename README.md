@@ -94,9 +94,11 @@ Then upload the zip to the [Chrome Web Store Developer Dashboard](https://chrome
 Tests run with Node's built-in test runner (no dependencies):
 
 ```bash
-npm test                    # run all tests (plain `node --test` discovery)
-node --test tests/analyzer.test.js   # run a single test file
+npm test                          # run all tests (plain `node --test` discovery)
+node --test "tests/analyzer.test.js"  # run a single test file (from repo root; keep the quotes + ./-free relative path so Node >=20 treats it as a glob, not a module to require)
 ```
+
+> Note: on Node 20+ a bare directory/path argument without this form can trigger `MODULE_NOT_FOUND`; plain `node --test` (what `npm test` runs) is always safe.
 
 ## License
 
