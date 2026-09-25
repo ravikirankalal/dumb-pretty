@@ -273,12 +273,88 @@
     mountNext();
   }
 
-  // ---------- Pretty view (text tree fallback) ----------
+  // ---------- Pretty view: syntax-highlighted JSON tree ----------
+  // Tokenizes the *reformatted* JSON (JSON.stringify with indent) so keys,
+  // strings, numbers, booleans and nulls get distinct colors — clearly
+  // different from both the Visual UI and the plain-text Raw view.
+
+  const PRETTY_TOKEN_RE =
+    /("(?:\\.|[^"\\])*")(\s*:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|(true(?![\w"])|false(?![\w"])|null(?![\w"]))|([{}\[\],:])|(\s+)|(.)/g;
+
+  /** Append one token; whitespace/unexpected chars go in verbatim so the
+   *  highlighted output reconstitutes byte-for-byte via textContent. */
+  function tok(parent, cls, text) {
+    if (!cls) { parent.appendChild(document.createTextNode(text)); return; }
+    parent.appendChild(JV.el('span', 'jv-t-' + cls, text));
+  }
+
+  JV.highlightJson = function highlightJson(text) {
+    const frag = document.createDocumentFragment();
+    PRETTY_TOKEN_RE.lastIndex = 0;
+    let m;
+    while ((m = PRETTY_TOKEN_RE.exec(text)) !== null) {
+      if (m[1] !== undefined) {
+        // A quoted run. It is a *key* iff followed by ':' (captured group 2);
+        // otherwise it is a string value. Colons inside strings can never be
+        // followed by another colon at token level, so no structural ':' is
+        // ever absorbed or lost.
+        if (m[2]) { tok(frag, 'key', m[1]); tok(frag, 'punct', m[2]); }
+        else tok(frag, 'string', m[1]);
+      } else if (m[3] !== undefined) tok(frag, 'number', m[3]);
+      else if (m[4] !== undefined) tok(frag, 'literal', m[4]);
+      else if (m[5] !== undefined) tok(frag, 'punct', m[5]);
+      else if (m[6] !== undefined) tok(frag, null, m[6]);
+      else tok(frag, null, m[7]); // unexpected char: keep as-is
+    }
+    return frag;
+  };
+
+  // Indent guides: one background layer per nesting level (pure CSS, no DOM cost).
+  const GUIDE_STEP = 'var(--jv-indent, 2ch)';
+  function guideBg(levels) {
+    const stops = [];
+    for (let i = 1; i <= levels; i++) {
+      const o = `calc(${i} * ${GUIDE_STEP})`;
+      stops.push(`transparent calc(${o} - 1px)`);
+      stops.push(`var(--jv-guide) ${o}`);
+      stops.push(`transparent calc(${o} + 1px)`);
+    }
+    return `repeating-linear-gradient(to right, transparent 0, transparent calc(${GUIDE_STEP} - 1px), var(--jv-guide-faint) calc(${GUIDE_STEP} - 1px), var(--jv-guide-faint) ${GUIDE_STEP})`;
+  }
+
   JV.renderPretty = function renderPretty(sourceText) {
-    const pre = JV.el('pre', 'jv-pretty');
+    const wrap = JV.el('div', 'jv-pretty-wrap');
+    const gut = JV.el('div', 'jv-gutter');
+    const code = JV.el('pre', 'jv-pretty');
     let obj;
     try { obj = JSON.parse(sourceText); } catch (_e) { obj = null; }
-    pre.textContent = obj !== null ? JSON.stringify(obj, null, 2) : sourceText;
-    return pre;
+    const text = obj !== null ? JSON.stringify(obj, null, 2) : sourceText;
+    code.appendChild(JV.highlightJson(text));
+
+    const lines = text.split('\n');
+    let maxDepth = 0;
+    for (const l of lines) {
+      const depth = Math.floor((l.length - l.replace(/^ +/, '').length) / 2);
+      if (depth > maxDepth) maxDepth = depth;
+    }
+    const lineNos = [];
+    for (let i = 1; i <= lines.length; i++) lineNos.push(String(i));
+    gut.textContent = lineNos.join('\n');
+    code.style.backgroundImage = guideBg(Math.min(12, maxDepth));
+
+    wrap.appendChild(gut);
+    wrap.appendChild(code);
+    return wrap;
+  };
+
+  // ---------- Raw view: verbatim server bytes, no formatting/highlighting ----------
+  JV.renderRaw = function renderRaw(sourceText) {
+    const bar = JV.el('div', 'jv-raw-note',
+      'Raw response — exactly as received from the server (no reformatting, no highlighting).');
+    const pre = JV.el('pre', 'jv-raw', sourceText);
+    const wrap = JV.el('div', 'jv-raw-wrap');
+    wrap.appendChild(bar);
+    wrap.appendChild(pre);
+    return wrap;
   };
 })();

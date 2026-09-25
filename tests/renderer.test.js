@@ -128,3 +128,41 @@ test('search filter hides non-matching rows', () => {
   const rows = find(root, 'jv-row');
   assert.equal(rows.filter((r) => r.hidden).length, 1);
 });
+
+test('pretty view is syntax-highlighted and differs from raw', () => {
+  const src = '{"a":1,"b":"x","c":[true,null]}';
+  const pretty = JV.renderPretty(src);
+  const pre = find(pretty, 'jv-pretty')[0];
+  const keys = find(pre, 'jv-t-key');
+  const strings = find(pre, 'jv-t-string');
+  const numbers = find(pre, 'jv-t-number');
+  const literals = find(pre, 'jv-t-literal');
+  assert.ok(keys.length >= 1, 'has key tokens');
+  assert.equal(keys[0].textContent, '"a"');
+  assert.ok(strings.some((s) => s.textContent === '"x"'), 'string values tokenized');
+  assert.ok(numbers.some((n) => n.textContent === '1'), 'numbers tokenized');
+  assert.ok(literals.some((l) => l.textContent === 'true'), 'booleans tokenized');
+  assert.ok(literals.some((l) => l.textContent === 'null'), 'null tokenized');
+  // textContent reconstitutes valid JSON
+  assert.deepEqual(JSON.parse(pre.textContent), JSON.parse(src));
+  // line-number gutter present
+  assert.ok(find(pretty, 'jv-gutter').length === 1);
+});
+
+test('raw view is verbatim: no spans, no reformatting', () => {
+  const src = '{"a":1,"b":2}';
+  const raw = JV.renderRaw(src);
+  const pre = find(raw, 'jv-raw')[0];
+  assert.equal(pre.textContent, src);
+  assert.equal(pre.children.length, 0, 'no child elements in raw <pre>');
+  assert.ok(find(raw, 'jv-raw-note').length === 1);
+});
+
+test('highlightJson handles escaped quotes and urls', () => {
+  const src = '{"msg":"say \\"hi\\" \\\\ ok","url":"https://example.com/a:b"}';
+  const tmp = JV.el('div');
+  tmp.appendChild(JV.highlightJson(src));
+  assert.equal(tmp.textContent, src);
+  const strings = find(tmp, 'jv-t-string');
+  assert.ok(strings.some((s) => s.textContent.includes('\\"hi\\"')), 'escaped quote kept inside one string token');
+});

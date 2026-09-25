@@ -15,6 +15,8 @@
   --jv-null-bg: #e5e7eb;   --jv-null-fg: #4b5563;
   --jv-chip-bg: #eef2ff;   --jv-chip-fg: #3730a3;
   --jv-shadow: 0 1px 3px rgba(16, 24, 40, .08);
+  --jv-guide: #d5dae1;      /* pretty view: indent guide per level */
+  --jv-guide-faint: #edeff2;/* pretty view: repeating base guide */
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -32,6 +34,8 @@
     --jv-null-bg: #2a3140;   --jv-null-fg: #9aa4b2;
     --jv-chip-bg: #1e2647;   --jv-chip-fg: #a5b4fc;
     --jv-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+    --jv-guide: #39424f;
+    --jv-guide-faint: #232936;
   }
 }
 
@@ -169,10 +173,44 @@ ul.jv-list { list-style: none; margin: 0; padding: 6px 14px; }
 .jv-loadmore { display: block; margin: 10px auto; }
 .jv-loadmore-cell { text-align: center; }
 
-/* ---------- pretty/raw ---------- */
-pre.jv-pretty, pre.jv-raw {
+/* ---------- pretty: syntax-highlighted tree ---------- */
+.jv-pretty-wrap {
+  display: flex; align-items: stretch;
   background: var(--jv-surface); border: 1px solid var(--jv-border);
+  border-radius: 12px; box-shadow: var(--jv-shadow);
+  overflow: hidden;
+}
+pre.jv-pretty {
+  flex: 1; min-width: 0; margin: 0; padding: 16px;
+  background: transparent; border: none; border-radius: 0; overflow: auto;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px; line-height: 1.55; white-space: pre; tab-size: 2;
+  --jv-indent: 2ch;
+}
+.jv-gutter {
+  flex: 0 0 auto; padding: 16px 8px 16px 12px; text-align: right;
+  color: var(--jv-muted); background: var(--jv-bg);
+  border-right: 1px solid var(--jv-border); user-select: none;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px; line-height: 1.55; white-space: pre;
+}
+.jv-t-key    { color: var(--jv-key); font-weight: 600; }
+.jv-t-string { color: var(--jv-string); }
+.jv-t-number { color: var(--jv-number); }
+.jv-t-literal{ color: #0ea5e9; font-weight: 600; }
+.jv-t-punct  { color: var(--jv-muted); }
+.jv-hidden, .jv-hidden-absorbed { display: none; }
+
+/* ---------- raw: verbatim bytes, deliberately plain ---------- */
+.jv-raw-note {
+  font-size: 12px; color: var(--jv-muted);
+  background: var(--jv-chip-bg); border: 1px dashed var(--jv-border);
+  border-radius: 8px; padding: 6px 10px; margin-bottom: 8px;
+}
+pre.jv-raw {
+  background: var(--jv-bg); border: 1px solid var(--jv-border);
   border-radius: 12px; padding: 16px; overflow: auto;
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 13px; line-height: 1.55; white-space: pre-wrap;
+  color: var(--jv-text);
 }

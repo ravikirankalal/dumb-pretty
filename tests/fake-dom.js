@@ -40,6 +40,7 @@ class Node {
   set textContent(v) { this._text = v == null ? '' : String(v); this.children = []; }
   appendChild(child) {
     if (child && child.__frag) { child.children.forEach((c) => this.appendChild(c)); return child; }
+    if (typeof child === 'string') child = new TextNode(child);
     child.parent = this;
     this.children.push(child);
     return child;
@@ -99,12 +100,30 @@ class Node {
   }
 }
 
+class TextNode {
+  constructor(text) { this.tagName = '#text'; this._text = String(text == null ? '' : text); this.parent = null; }
+  get textContent() { return this._text; }
+  set textContent(v) { this._text = String(v == null ? '' : v); }
+  get children() { return []; }
+  querySelectorAll() { return []; }
+  querySelector() { return null; }
+  get classList() { return { contains: () => false, add() {}, remove() {}, toggle() {} }; }
+  get className() { return ''; }
+  remove() {
+    if (!this.parent) return;
+    const i = this.parent.children.indexOf(this);
+    if (i >= 0) this.parent.children.splice(i, 1);
+    this.parent = null;
+  }
+}
+
 class Frag extends Node { constructor() { super('#fragment'); this.__frag = true; } }
 
 function makeDocument() {
   const doc = {
     createElement: (tag) => new Node(tag),
     createDocumentFragment: () => new Frag(),
+    createTextNode: (t) => new TextNode(t),
     body: new Node('body'),
     documentElement: new Node('html'),
     title: '',

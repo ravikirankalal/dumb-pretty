@@ -19,7 +19,7 @@
     prettyView.appendChild(JV.renderPretty(sourceText));
 
     const rawView = JV.el('div', 'jv-view jv-view-raw');
-    rawView.appendChild(JV.el('pre', 'jv-raw', sourceText));
+    rawView.appendChild(JV.renderRaw(sourceText));
 
     // --- toolbar ---
     const bar = JV.el('div', 'jv-toolbar');
