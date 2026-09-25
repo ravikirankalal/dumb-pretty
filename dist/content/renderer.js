@@ -127,11 +127,34 @@
 
   function cellValue(v, depth) {
     if (JV.isPrimitive(v)) return JV.renderPrimitive(v, depth);
-    // complex cell: collapsed chip that expands inline on click
+    // Small flat object (e.g. geo: {lat, lng}) renders as an inline key:value
+    // chip instead of a collapsed block — keeps table rows compact & readable.
+    const inline = JV.inlineObjectChip(v, depth);
+    if (inline) return inline;
+    // otherwise: collapsed chip that expands inline on click
     const holder = JV.el('span', 'jv-cell-complex');
     holder.appendChild(JV.renderCollapsed(v, depth, true));
     return holder;
   }
+
+  /**
+   * If `v` is a small, all-primitive object, render it as one inline
+   * "key: value · key: value" chip. Returns null for anything else so the
+   * caller can fall back to the collapsed-chip behaviour.
+   */
+  JV.inlineObjectChip = function inlineObjectChip(v, depth) {
+    if (!JV.isPlainObject(v)) return null;
+    const keys = Object.keys(v);
+    if (keys.length === 0 || keys.length > 4) return null;
+    for (const k of keys) if (!JV.isPrimitive(v[k])) return null;
+    const chip = JV.el('span', 'jv-inline-obj');
+    keys.forEach((k, i) => {
+      if (i > 0) chip.appendChild(JV.el('span', 'jv-inline-sep', '·'));
+      chip.appendChild(JV.el('span', 'jv-inline-key', k + ':'));
+      chip.appendChild(JV.renderPrimitive(v[k], depth + 1));
+    });
+    return chip;
+  };
 
   function sortTable(table, shape, col, th) {
     const tbody = table.tBodies[0];
@@ -186,6 +209,12 @@
     if (shape.kind === 'primitive' || shape.kind === 'emptyArray' || shape.kind === 'emptyObject') {
       return JV.renderValue(v, { depth, chunkSize });
     }
+    // Small flat objects (e.g. geo: {lat, lng}) always render as one inline
+    // chip — never a vertical block or collapsed card, at any depth.
+    if (shape.kind === 'grid') {
+      const chip = JV.inlineObjectChip(v, depth);
+      if (chip) return chip;
+    }
     if (depth >= 4) return JV.renderCollapsed(v, depth, false);
     return JV.renderValue(v, { depth, chunkSize });
   };
@@ -234,11 +263,15 @@
     const btn = JV.el('button', 'jv-chip jv-collapsed-chip',
       (isArr ? '[…]' : '{…}') + ' ' + count + (isArr ? ' items' : ' keys'));
     btn.type = 'button';
-    btn.addEventListener('click', () => {
-      const replacement = JV.renderNested(v, depth + 1, JV._settings ? JV._settings.chunkSize : 300);
-      btn.replaceWith(replacement);
-    });
+    btn.addEventListener('click', () => JV.expandCollapsed(btn, v, depth));
     return btn;
+  };
+
+  /** Expand a collapsed chip in place (exported for tests/reuse). */
+  JV.expandCollapsed = function expandCollapsed(btn, v, depth) {
+    const replacement = JV.renderNested(v, depth + 1, JV._settings ? JV._settings.chunkSize : 300);
+    btn.replaceWith(replacement);
+    return replacement;
   };
 
   // ---------- chunked mounting for perf ----------

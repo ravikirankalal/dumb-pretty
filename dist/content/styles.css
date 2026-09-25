@@ -121,6 +121,14 @@ table.jv-table { border-collapse: collapse; width: 100%; }
 .jv-type-number .jv-td, .jv-td.jv-type-number { text-align: right; font-variant-numeric: tabular-nums; }
 .jv-missing { color: var(--jv-muted); }
 
+/* ---------- inline key:value chip (small flat objects inside table cells) ---------- */
+.jv-inline-obj {
+  display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  white-space: nowrap; font-size: 12.5px; line-height: 1.4;
+}
+.jv-inline-key { color: var(--jv-key); font-weight: 600; }
+.jv-inline-sep { color: var(--jv-muted); margin: 0 2px; }
+
 /* ---------- grid / dl ---------- */
 dl.jv-grid { display: grid; grid-template-columns: minmax(120px, 260px) 1fr; margin: 0; }
 .jv-grid > dt.jv-key {

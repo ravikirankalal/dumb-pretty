@@ -166,3 +166,72 @@ test('highlightJson handles escaped quotes and urls', () => {
   const strings = find(tmp, 'jv-t-string');
   assert.ok(strings.some((s) => s.textContent.includes('\\"hi\\"')), 'escaped quote kept inside one string token');
 });
+
+// ---- regression: geo lat/lng printed vertically in table cells ----
+const USERS_FIXTURE = [
+  {
+    id: 1, name: 'Leanne Graham', username: 'Bret', email: 'Sincere@april.biz',
+    address: {
+      street: 'Kulas Light', suite: 'Apt. 556', city: 'Gwenborough', zipcode: '92998-3874',
+      geo: { lat: '-37.3159', lng: '81.1496' },
+    },
+    phone: '1-770-736-8031 x56442', website: 'hildegard.org',
+    company: { name: 'Romaguera-Crona', catchPhrase: 'Multi-layered client-server neural-net', bs: 'harness real-time e-markets' },
+  },
+  {
+    id: 2, name: 'Ervin Howell', username: 'Antonette', email: 'Shanna@melissa.tv',
+    address: {
+      street: 'Victor Plains', suite: 'Suite 879', city: 'Wisokyburgh', zipcode: '90566-7771',
+      geo: { lat: '-43.9509', lng: '-34.4618' },
+    },
+    phone: '010-692-6593 x09125', website: 'anastasia.net',
+    company: { name: 'Deckow-Crist', catchPhrase: 'Proactive didactic contingency', bs: 'synergize scalable supply-chains' },
+  },
+];
+
+test('inlineObjectChip renders small flat objects as one inline chip', () => {
+  const chip = JV.inlineObjectChip({ lat: '-37.3159', lng: '81.1496' }, 2);
+  assert.ok(chip, 'chip produced for {lat,lng}');
+  assert.equal(chip.tagName, 'SPAN');
+  assert.ok(chip.classList.contains('jv-inline-obj'));
+  // all parts on ONE line: textContent contains no newlines and holds both values
+  const txt = chip.textContent;
+  assert.ok(!txt.includes('\n'), 'chip text is single-line');
+  assert.match(txt, /lat:/);
+  assert.match(txt, /-37\.3159/);
+  assert.match(txt, /lng:/);
+  assert.match(txt, /81\.1496/);
+});
+
+test('inlineObjectChip declines non-flat, oversized or empty objects', () => {
+  assert.equal(JV.inlineObjectChip({ a: { b: 1 } }, 2), null, 'nested object -> null');
+  assert.equal(JV.inlineObjectChip({ a: [1] }, 2), null, 'array value -> null');
+  assert.equal(JV.inlineObjectChip({}, 2), null, 'empty -> null');
+  assert.equal(JV.inlineObjectChip({ a: 1, b: 2, c: 3, d: 4, e: 5 }, 2), null, '>4 keys -> null');
+  assert.equal(JV.inlineObjectChip([1, 2], 2), null, 'array input -> null');
+});
+
+test('table cell for geo {lat,lng} is an inline chip, not a vertical block', () => {
+  const root = JV.buildApp({ value: USERS_FIXTURE, sourceText: JSON.stringify(USERS_FIXTURE), settings: SETTINGS });
+  const rows = find(root, 'jv-row');
+  assert.equal(rows.length, 2);
+  for (let i = 0; i < rows.length; i++) {
+    // address cell starts as a collapsed chip — expand it like a user click
+    const collapsed = find(rows[i], 'jv-collapsed-chip')[0];
+    assert.ok(collapsed, `row ${i + 1}: address cell collapsed initially`);
+    JV.expandCollapsed(collapsed, USERS_FIXTURE[i].address, 2);
+    // after expansion, geo must be ONE inline chip on a single line
+    const chips = find(rows[i], 'jv-inline-obj');
+    const geoChip = chips.find((c) => c.textContent.includes('lat:') && c.textContent.includes('lng:'));
+    assert.ok(geoChip, `row ${i + 1}: geo rendered as inline chip after expanding address`);
+    assert.ok(!geoChip.textContent.includes('\n'), `row ${i + 1}: geo chip stays on one line`);
+    assert.match(geoChip.textContent, new RegExp(i === 0 ? '-37\\.3159' : '-43\\.9509'));
+  }
+});
+
+test('complex nested cells still collapse to expandable chips', () => {
+  const value = [{ id: 1, meta: { deep: { a: 1, b: { c: 2 } } } }];
+  const root = JV.buildApp({ value, sourceText: JSON.stringify(value), settings: SETTINGS });
+  const collapsed = find(root, 'jv-collapsed-chip');
+  assert.ok(collapsed.length >= 1, 'deeply nested object collapses');
+});
