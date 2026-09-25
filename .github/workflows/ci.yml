@@ -1,0 +1,99 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [master, main]
+    tags: ["v*"]
+  pull_request:
+    branches: [master, main]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Lint & Test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Validate all JSON files parse correctly
+        run: |
+          find . -path ./node_modules -prune -o -name '*.json' -print | while read -r f; do
+            echo "checking $f"
+            node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$f"
+          done
+
+      - name: Sanity-check extension manifest
+        run: |
+          node -e "
+            const m = JSON.parse(require('fs').readFileSync('dist/manifest.json', 'utf8'));
+            const assert = require('assert');
+            assert.strictEqual(m.manifest_version, 3, 'manifest_version must be 3');
+            assert.ok(m.name && m.version, 'manifest needs name and version');
+            assert.ok(Array.isArray(m.content_scripts) && m.content_scripts.length > 0, 'needs content_scripts');
+            assert.ok(m.background && (m.background.service_worker || m.background.scripts), 'needs background');
+            console.log('manifest OK:', m.name, 'v' + m.version);
+          "
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run tests
+        run: npm test
+
+  release:
+    name: Package & Release (on v* tag)
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Run tests before packaging
+        run: |
+          npm install --no-audit --no-fund
+          npm test
+
+      - name: Verify tag matches package version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(node -p "require('./package.json').version")
+          MANIFEST=$(node -p "require('./dist/manifest.json').version")
+          echo "tag=$TAG package=$PKG manifest=$MANIFEST"
+          if [ "$TAG" != "$PKG" ] || [ "$TAG" != "$MANIFEST" ]; then
+            echo "::error::Version mismatch between tag, package.json and manifest.json"; exit 1;
+          fi
+
+      - name: Package extension zip
+        run: |
+          cd dist
+          zip -r "../json-visualizer-${GITHUB_REF_NAME}.zip" .
+          cd ..
+          ls -la "json-visualizer-${GITHUB_REF_NAME}.zip"
+
+      - name: Create GitHub Release with zip asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: json-visualizer-${{ github.ref_name }}.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false
