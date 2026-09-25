@@ -1,0 +1,9 @@
+{
+  "name": "json-visualizer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chrome extension: render JSON responses as visual UI (tables, lists, badges).",
+  "scripts": {
+    "test": "node --test tests/"
+  }
+}
